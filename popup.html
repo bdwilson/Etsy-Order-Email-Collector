@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <title>Etsy Order Email Collector</title>
   <style>
     body {
@@ -41,29 +42,12 @@
     #stopButton:hover {
       background-color: #B13826;
     }
-    #continueButton {
-      background-color: #4CAF50;
-      color: white;
-    }
-    #continueButton:hover {
-      background-color: #45a049;
-    }
-    #finishButton {
-      background-color: #008CBA;
-      color: white;
-    }
-    #finishButton:hover {
-      background-color: #007B9A;
-    }
     #status {
       margin-top: 15px;
       padding: 10px;
       background-color: #fff;
       border-radius: 5px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    #navigationButtons {
-      display: none;
     }
     #loadingSpinner {
       display: none;
@@ -94,11 +78,7 @@
   <h2>Etsy Order Email Collector</h2>
   <button id="startButton">Start Collecting Orders</button>
   <button id="stopButton" style="display: none;">Stop Collection</button>
-  <div id="navigationButtons">
-    <button id="continueButton">Continue to Next Page</button>
-    <button id="finishButton">Finish and Download</button>
-  </div>
-  <button id="optionsButton" style="width: 100%; background-color: #666; margin-top: 10px; display: none;">⚙️ Settings</button>
+  <button id="optionsButton" style="width: 100%; background-color: #666; margin-top: 10px;">⚙️ Settings</button>
   <div id="loadingSpinner">
     <div class="spinner"></div>
     <p id="loadingText">Processing current page...</p>

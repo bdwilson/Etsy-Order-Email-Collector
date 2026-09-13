@@ -1,10 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
   const startButton = document.getElementById('startButton');
   const stopButton = document.getElementById('stopButton');
-  const continueButton = document.getElementById('continueButton');
-  const finishButton = document.getElementById('finishButton');
   const optionsButton = document.getElementById('optionsButton');
-  const navigationButtons = document.getElementById('navigationButtons');
   const loadingSpinner = document.getElementById('loadingSpinner');
   const loadingText = document.getElementById('loadingText');
   const statusDiv = document.getElementById('status');
@@ -12,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
   optionsButton.addEventListener('click', function() {
     chrome.runtime.openOptionsPage();
   });
-  
+
   startButton.addEventListener('click', function() {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
       if (tabs[0].url.includes('https://www.etsy.com/your/orders/sold')) {
@@ -23,8 +20,10 @@ document.addEventListener('DOMContentLoaded', function() {
           } else if (response && response.status === "started") {
             startButton.style.display = 'none';
             stopButton.style.display = 'block';
-            showLoading("Processing current page...");
-            updateStatus("Collection started...");
+            showLoading("Reading page 1…");
+            // Collection runs in the page, not here, so closing this popup no
+            // longer ends the run — it only stops the progress display.
+            updateStatus("Collecting every page. You can close this popup.");
           }
         });
       } else {
@@ -41,22 +40,10 @@ document.addEventListener('DOMContentLoaded', function() {
           updateStatus("Error: Please refresh the Etsy Sold Orders page and try again.");
         } else if (response && response.status === "stopped") {
           resetUI();
-          updateStatus("Collection stopped.");
+          updateStatus("Stopping — exporting what has been collected so far…");
         }
       });
     });
-  });
-
-  continueButton.addEventListener('click', function() {
-    sendResponse({proceed: true});
-    navigationButtons.style.display = 'none';
-    showLoading("Loading next page...");
-  });
-
-  finishButton.addEventListener('click', function() {
-    sendResponse({proceed: false});
-    resetUI();
-    updateStatus("Finishing collection. Preparing CSV download...");
   });
 
   function updateStatus(message) {
@@ -66,44 +53,28 @@ document.addEventListener('DOMContentLoaded', function() {
   function resetUI() {
     startButton.style.display = 'block';
     stopButton.style.display = 'none';
-    navigationButtons.style.display = 'none';
     hideLoading();
   }
 
   function showLoading(message) {
-    loadingText.textContent = message;
+    loadingText.textContent = message || "Processing…";
     loadingSpinner.style.display = 'block';
-    navigationButtons.style.display = 'none';
   }
 
   function hideLoading() {
     loadingSpinner.style.display = 'none';
   }
 
-  let pendingResponse = null;
-
-  // Listen for updates from content script and background script
-  chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  // Progress from the content script, and the export result from the service
+  // worker. A popup opened mid-run starts blank and fills in on the next
+  // message — the run itself is unaffected either way.
+  chrome.runtime.onMessage.addListener(function(request) {
     if (request.action === "updateStatus") {
       updateStatus(request.status);
-    } else if (request.action === "promptNextPage") {
-      hideLoading();
-      stopButton.style.display = 'none';
-      navigationButtons.style.display = 'block';
-      updateStatus(`Collected ${request.totalOrders} order(s) from ${request.currentPage} page(s).`);
-      pendingResponse = sendResponse;
-      return true; // Indicates that the response is sent asynchronously
     } else if (request.action === "showLoading") {
-      showLoading(request.message || "Processing...");
+      showLoading(request.message);
     } else if (request.action === "hideLoading") {
-      hideLoading();
+      resetUI();
     }
   });
-
-  function sendResponse(response) {
-    if (pendingResponse) {
-      pendingResponse(response);
-      pendingResponse = null;
-    }
-  }
 });

@@ -25,12 +25,14 @@ Etsy Order Email Collector is a Chrome extension designed to help Etsy sellers e
    - In the popup, click "Start Collecting Orders".
 
 3. **Collection process**:
-   - The extension will automatically collect Order IDs and email addresses from the current page.
-   - After each page, you'll be prompted to continue to the next page or finish.
-   - Click "Continue to Next Page" to proceed or "Finish and Download" when done.
+   - The extension collects Order IDs and email addresses from every page on its
+     own, advancing through the pagination until there are no more pages.
+   - Progress is shown in the popup, but the popup is not required — you can
+     close it and collection keeps running in the tab.
+   - Click "Stop Collection" to finish early and export what has been collected.
 
 4. **Download results**:
-   - Once you've finished or there are no more pages, a CSV file containing all collected Order IDs and email addresses will be downloaded automatically.
+   - Once there are no more pages (or you press Stop), a CSV file containing all collected Order IDs and email addresses will be downloaded automatically, and/or pushed to etsy-lettertrack if you enabled that in Options.
    - The CSV has two columns: "Order ID" and "Email"
    - You can then upload the file to your email newsletter service, use it with etsy-lettertrack, or process it with your own business tools.
 
