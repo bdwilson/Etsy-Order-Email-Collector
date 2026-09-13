@@ -24,25 +24,35 @@ Etsy Order Email Collector is a Chrome extension designed to help Etsy sellers e
    - Click on the Etsy Order Email Collector extension icon in your Chrome toolbar.
    - In the popup, click "Start Collecting Orders".
 
-3. **Collection process**:
-   - The extension collects Order IDs and email addresses from every page on its
-     own, advancing through the pagination until there are no more pages.
+3. **Choose how much to collect**:
+   - **Collect every page** (default) walks the pagination on its own until
+     there are no more pages.
+   - Untick it to read only the page you are looking at — handy when you just
+     want today's orders rather than re-reading your whole history.
+   - The choice is remembered between runs.
+
+4. **Collection process**:
    - Progress is shown in the popup, but the popup is not required — you can
      close it and collection keeps running in the tab.
    - Click "Stop Collection" to finish early and export what has been collected.
 
-4. **Download results**:
-   - Once there are no more pages (or you press Stop), a CSV file containing all collected Order IDs and email addresses will be downloaded automatically, and/or pushed to etsy-lettertrack if you enabled that in Options.
+5. **Get the results**:
+   - When collection finishes, the orders are pushed to your API if you enabled
+     that in Options, and the CSV is downloaded automatically if
+     "Also download the CSV automatically" is ticked.
+   - Either way a **Download CSV** button appears in the popup, so you can grab
+     the file whenever you want instead of being handed a save dialog every run.
+     The last run is kept, so the button still works if you reopen the popup later.
    - The CSV has two columns: "Order ID" and "Email"
    - You can then upload the file to your email newsletter service, use it with etsy-lettertrack, or process it with your own business tools.
 
 ## Features
 
 - **Collect Order IDs & Emails** - Automatically extract both order IDs and customer email addresses from your Etsy sold orders page
-- **Multi-Page Support** - Easily navigate through multiple pages of orders with a simple UI
-- **CSV Export** - Download all collected data as a properly formatted CSV file with `Order ID` and `Email` columns
+- **Multi-Page Support** - Walks every page of your sold orders on its own, or reads just the page you're on
+- **CSV Export** - Download all collected data as a properly formatted CSV file with `Order ID` and `Email` columns, automatically or on demand
 - **LetterTrack Compatible** - CSV output format works seamlessly with [etsy-lettertrack](https://github.com/bdwilson/etsy-lettertrack) for order tracking integration
-- **Direct Push** - Optionally send collected orders straight into a running etsy-lettertrack instance, with no CSV to import by hand
+- **Direct Push** - Optionally POST collected orders to any API you point it at, with no CSV to import by hand
 - **Customizable Settings** - Configure export options via the settings panel
 
 ## Privacy & Ethical Use
@@ -78,9 +88,9 @@ from this extension avoids that path entirely.)
 Your own seller address is dropped on the receiving end rather than stored, and
 the endpoint only accepts requests from the local machine.
 
-**If the push fails** — etsy-lettertrack not running, wrong port — a CSV is
-downloaded anyway, so a collection run is never lost. The popup says what
-happened.
+**If the push fails** — etsy-lettertrack not running, wrong port — the popup
+says so and the collected orders are kept, so you can retry or grab them with
+the **Download CSV** button. Nothing is lost.
 
 **Using a different port or host?** Change the endpoint in Options and approve
 the permission prompt Chrome shows. Chrome blocks requests to hosts the
@@ -102,24 +112,54 @@ uses for:
 
 This creates a complete workflow for Etsy sellers who want supplemental USPS tracking alongside their existing Etsy postage labels.
 
-### Push API
+## Push API
 
-The endpoint is `POST /api/contacts` and takes:
-
-```json
-{"contacts": [{"email": "buyer@example.com", "order_id": "4147089582"}]}
-```
-
-It replies with what it did, which is what the popup reports:
+The push isn't tied to etsy-lettertrack — point the endpoint at any server that
+accepts this. One `POST` per collection run (not per order), with
+`Content-Type: application/json`:
 
 ```json
 {
-  "saved": [{"email": "buyer@example.com", "order_id": 4147089582}],
-  "queued": [],
-  "excluded": ["you@yourshop.com"],
-  "pending_total": 0,
-  "review_url": "http://localhost:8000/contacts/pending"
+  "contacts": [
+    { "email": "buyer@example.com", "order_id": "4147089582" },
+    { "email": "someone@example.net", "order_id": "4147089583" }
+  ]
 }
+```
+
+- `order_id` is Etsy's receipt ID, sent as a string.
+- Orders with no email address on the Etsy page are left out.
+- Sent from the extension's service worker, so CORS is not enforced: your server
+  does not need `Access-Control-Allow-Origin` headers. It does need to be a host
+  you approved when saving the endpoint.
+
+**Any 2xx counts as success.** The response body is optional — reply with an
+empty one if you have nothing to report. If you return JSON, these three arrays
+are used (lengths only) to report e.g. "Pushed 13: 13 matched to an order":
+
+```json
+{
+  "saved":    [ { "email": "buyer@example.com", "order_id": 4147089582 } ],
+  "queued":   [ "unmatched@example.com" ],
+  "excluded": [ "you@yourshop.com" ]
+}
+```
+
+Anything else in the body is ignored, and a non-JSON body simply means the count
+isn't broken down. A non-2xx status is reported as a failure; the collection is
+still kept and the popup's **Download CSV** button still works.
+
+A minimal receiver:
+
+```python
+from fastapi import FastAPI
+app = FastAPI()
+
+@app.post("/api/contacts")
+async def contacts(payload: dict):
+    for c in payload.get("contacts", []):
+        print(c["order_id"], c["email"])
+    return {"saved": payload.get("contacts", [])}
 ```
 
 ## Contributing

@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const startButton = document.getElementById('startButton');
   const stopButton = document.getElementById('stopButton');
   const optionsButton = document.getElementById('optionsButton');
+  const allPagesCheckbox = document.getElementById('allPages');
+  const downloadLink = document.getElementById('downloadLink');
   const loadingSpinner = document.getElementById('loadingSpinner');
   const loadingText = document.getElementById('loadingText');
   const statusDiv = document.getElementById('status');
@@ -10,20 +12,55 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.runtime.openOptionsPage();
   });
 
+  // Remembered between openings — the popup is rebuilt from scratch every
+  // time, so an unremembered checkbox would silently reset to "every page"
+  // on each use.
+  chrome.storage.sync.get({ allPages: true }, function(result) {
+    allPagesCheckbox.checked = result.allPages !== false;
+  });
+  allPagesCheckbox.addEventListener('change', function() {
+    chrome.storage.sync.set({ allPages: allPagesCheckbox.checked });
+  });
+
+  // A finished run is kept in storage, so the CSV stays one click away even if
+  // the popup was closed when collection ended.
+  chrome.storage.local.get("lastCollection", function(result) {
+    const last = result.lastCollection;
+    if (last && last.orders && last.orders.length) {
+      showDownload(last.orders.length);
+      if (!statusDiv.textContent) {
+        updateStatus(`Last run collected ${last.orders.length} order(s).`);
+      }
+    }
+  });
+
+  downloadLink.addEventListener('click', function() {
+    chrome.runtime.sendMessage({ action: "downloadLastCsv" }).catch(() => {});
+  });
+
+  function showDownload(count) {
+    downloadLink.textContent = `⤓ Download CSV (${count} order${count === 1 ? '' : 's'})`;
+    downloadLink.style.display = 'block';
+  }
+
   startButton.addEventListener('click', function() {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
       if (tabs[0].url.includes('https://www.etsy.com/your/orders/sold')) {
-        chrome.tabs.sendMessage(tabs[0].id, {action: "start"}, function(response) {
+        const allPages = allPagesCheckbox.checked;
+        chrome.tabs.sendMessage(tabs[0].id, {action: "start", allPages: allPages}, function(response) {
           if (chrome.runtime.lastError) {
             console.error('Error starting collection:', chrome.runtime.lastError.message);
             updateStatus("Error: Please refresh the Etsy Sold Orders page and try again.");
           } else if (response && response.status === "started") {
             startButton.style.display = 'none';
             stopButton.style.display = 'block';
-            showLoading("Reading page 1…");
+            downloadLink.style.display = 'none';
+            showLoading(allPages ? "Reading page 1…" : "Reading this page…");
             // Collection runs in the page, not here, so closing this popup no
             // longer ends the run — it only stops the progress display.
-            updateStatus("Collecting every page. You can close this popup.");
+            updateStatus(allPages
+              ? "Collecting every page. You can close this popup."
+              : "Collecting this page only.");
           }
         });
       } else {
@@ -75,6 +112,9 @@ document.addEventListener('DOMContentLoaded', function() {
       showLoading(request.message);
     } else if (request.action === "hideLoading") {
       resetUI();
+    } else if (request.action === "collectionComplete") {
+      resetUI();
+      if (request.count) showDownload(request.count);
     }
   });
 });

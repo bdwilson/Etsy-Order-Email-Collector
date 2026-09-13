@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Etsy Order Email Collector",
-  "version": "2.3",
+  "version": "2.4",
   "minimum_chrome_version": "111",
   "description": "Collect order IDs and email addresses from Etsy sold orders with optional LetterTrack integration",
   "permissions": [

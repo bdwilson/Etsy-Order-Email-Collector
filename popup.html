@@ -72,18 +72,66 @@
       font-style: italic;
       color: #666;
     }
+    .scope-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 10px;
+      background-color: #fff;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      font-size: 13px;
+    }
+    .scope-option input {
+      margin: 2px 0 0 0;
+      flex-shrink: 0;
+    }
+    .scope-hint {
+      display: block;
+      color: #666;
+      font-style: italic;
+      margin-top: 3px;
+      font-size: 12px;
+    }
+    #downloadLink {
+      display: none;
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #008CBA;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+    #downloadLink:hover {
+      background-color: #007B9A;
+    }
   </style>
 </head>
 <body>
   <h2>Etsy Order Email Collector</h2>
   <button id="startButton">Start Collecting Orders</button>
   <button id="stopButton" style="display: none;">Stop Collection</button>
+
+  <label class="scope-option">
+    <input type="checkbox" id="allPages" checked>
+    <span>
+      Collect every page
+      <span class="scope-hint">Unchecked, it reads only the page you are looking at — handy when you just want today's orders.</span>
+    </span>
+  </label>
   <button id="optionsButton" style="width: 100%; background-color: #666; margin-top: 10px;">⚙️ Settings</button>
   <div id="loadingSpinner">
     <div class="spinner"></div>
     <p id="loadingText">Processing current page...</p>
   </div>
   <div id="status"></div>
+  <button id="downloadLink">⤓ Download CSV</button>
   <script src="popup.js"></script>
 </body>
 </html>

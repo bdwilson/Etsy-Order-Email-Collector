@@ -3,6 +3,10 @@ let ordersCollected = [];
 let seenOrderIds = new Set();
 let currentPage = 1;
 let scannedDocument = false;
+// Whether to walk the pagination or stop after the page already on screen.
+// Set per run from the popup, since it's a per-run decision — "just today's
+// orders" one time, the whole history the next.
+let collectAllPages = true;
 
 // How long to keep draining a page after the last new order arrived. The SPA
 // can deliver a page's orders in more than one response, so stopping at the
@@ -36,6 +40,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     seenOrderIds = new Set();
     currentPage = 1;
     scannedDocument = false;
+    collectAllPages = request.allPages !== false;
     runCollection();
     sendResponse({status: "started"});
   } else if (request.action === "stop") {
@@ -175,6 +180,11 @@ async function runCollection() {
     }
 
     updateStatus(`Collected ${ordersCollected.length} order(s) from ${currentPage} page(s)`);
+
+    if (!collectAllPages) {
+      console.log('Etsy collector: current page only, finishing.');
+      break;
+    }
 
     const nextPageButton = await waitForNextPageButton(NEXT_BUTTON_TIMEOUT_MS);
     if (!nextPageButton) {

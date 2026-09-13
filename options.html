@@ -117,17 +117,16 @@
   </div>
 
   <div class="option-group">
-    <h3>Push to etsy-lettertrack</h3>
+    <h3>Push to an API</h3>
     <div class="checkbox-label">
       <input type="checkbox" id="pushEnabled">
-      <label for="pushEnabled">Send collected orders to etsy-lettertrack when collection finishes</label>
+      <label for="pushEnabled">Send collected orders to an API when collection finishes</label>
     </div>
     <div class="info-text">
-      Posts each <strong>Order ID + Email</strong> pair straight into a running
+      Posts each <strong>Order ID + Email</strong> pair straight to a URL you
+      control, so there is no CSV to import by hand. Works with
       <a href="https://github.com/bdwilson/etsy-lettertrack" target="_blank">etsy-lettertrack</a>
-      instance, so there is no CSV to import by hand. Because this extension reads
-      Etsy's own data, the order number is exact and addresses are linked
-      immediately rather than guessed.
+      out of the box, and with anything else that accepts the request below.
     </div>
 
     <div style="margin-top: 12px;">
@@ -135,19 +134,54 @@
       <input type="url" id="pushEndpoint" style="width: 100%; padding: 8px; margin-top: 4px;"
              placeholder="http://localhost:8000/api/contacts">
       <div class="info-text">
-        Change this only if you run etsy-lettertrack on a different port or host.
-        Saving a new host asks Chrome for permission to reach it — the extension
-        cannot post to a host you have not approved.
+        Saving a host the extension hasn't used before asks Chrome for permission
+        to reach it — it cannot post to a host you have not approved.
       </div>
     </div>
 
     <div class="checkbox-label" style="margin-top: 12px;">
       <input type="checkbox" id="downloadCsv" checked>
-      <label for="downloadCsv">Also download the CSV</label>
+      <label for="downloadCsv">Also download the CSV automatically</label>
     </div>
     <div class="info-text">
-      Leave on to keep a local copy as well. A CSV is downloaded regardless if
-      the push fails, so a collection run is never lost.
+      Turn this off to push only. Every run is kept either way, and the popup
+      offers a <strong>Download CSV</strong> button afterwards, so switching this
+      off never means losing a collection.
+    </div>
+  </div>
+
+  <div class="option-group">
+    <h3>Push API format</h3>
+    <p>Point the endpoint at any server that accepts this. It is a plain
+       <code>POST</code> with <code>Content-Type: application/json</code>:</p>
+<pre style="background:#f4f4f4; padding:12px; border-radius:4px; overflow-x:auto; font-size:12px;">{
+  "contacts": [
+    { "email": "buyer@example.com", "order_id": "4147089582" },
+    { "email": "someone@example.net", "order_id": "4147089583" }
+  ]
+}</pre>
+    <p><strong>Every order is sent in one request</strong> when collection
+       finishes — not one request per order. Orders with no email address on the
+       Etsy page are left out. <code>order_id</code> is Etsy's receipt ID, sent
+       as a string.</p>
+
+    <p><strong>Any 2xx response counts as success.</strong> The body is
+       optional — reply with an empty one if you have nothing to report.
+       If you do return JSON, these three arrays are shown in the popup:</p>
+<pre style="background:#f4f4f4; padding:12px; border-radius:4px; overflow-x:auto; font-size:12px;">{
+  "saved":    [ { "email": "buyer@example.com", "order_id": 4147089582 } ],
+  "queued":   [ "unmatched@example.com" ],
+  "excluded": [ "you@yourshop.com" ]
+}</pre>
+    <p>Only the array <em>lengths</em> are used, to report
+       "Pushed 13: 13 matched to an order". Anything else in the body is
+       ignored, and a non-JSON body just means the count isn't broken down.
+       A non-2xx status is reported as a failure and the CSV stays available
+       in the popup.</p>
+    <div class="info-text">
+      Sent from the extension's service worker, so CORS is not enforced and your
+      server does not need to send <code>Access-Control-Allow-Origin</code>
+      headers — but it must be a host you approved above.
     </div>
   </div>
 
