@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Etsy Order Email Collector - Options</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #f7f7f7;
+      color: #333;
+    }
+    h1 {
+      color: #F56400;
+      border-bottom: 2px solid #F56400;
+      padding-bottom: 10px;
+    }
+    .option-group {
+      background-color: #fff;
+      padding: 20px;
+      margin: 15px 0;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .option-group h3 {
+      margin-top: 0;
+      color: #333;
+      font-size: 16px;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px 0;
+      font-weight: 500;
+    }
+    input[type="text"],
+    input[type="url"],
+    textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    input[type="checkbox"] {
+      margin-right: 8px;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      margin: 10px 0;
+      font-weight: normal;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 10px;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #status {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+      display: none;
+    }
+    #status.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+    #status.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+    .info-text {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <h1>⚙️ Etsy Order Email Collector Options</h1>
+
+  <div class="option-group">
+    <h3>Export Settings</h3>
+    <div class="checkbox-label">
+      <input type="checkbox" id="includeOrderId" checked>
+      <label for="includeOrderId">Include Order ID in export</label>
+    </div>
+    <div class="info-text">When enabled, CSV exports will include the Order ID column alongside email addresses.</div>
+  </div>
+
+  <div class="option-group">
+    <h3>CSV Format Note</h3>
+    <p>The exported CSV includes two columns:</p>
+    <ul style="margin: 10px 0;">
+      <li><strong>Order ID</strong> - The Etsy receipt/order ID</li>
+      <li><strong>Email</strong> - The customer's email address</li>
+    </ul>
+    <p>This format is compatible with <a href="https://github.com/bdwilson/etsy-lettertrack" target="_blank">etsy-lettertrack</a> for order tracking integration.</p>
+  </div>
+
+  <div class="option-group">
+    <h3>Push to etsy-lettertrack</h3>
+    <div class="checkbox-label">
+      <input type="checkbox" id="pushEnabled">
+      <label for="pushEnabled">Send collected orders to etsy-lettertrack when collection finishes</label>
+    </div>
+    <div class="info-text">
+      Posts each <strong>Order ID + Email</strong> pair straight into a running
+      <a href="https://github.com/bdwilson/etsy-lettertrack" target="_blank">etsy-lettertrack</a>
+      instance, so there is no CSV to import by hand. Because this extension reads
+      Etsy's own data, the order number is exact and addresses are linked
+      immediately rather than guessed.
+    </div>
+
+    <div style="margin-top: 12px;">
+      <label for="pushEndpoint">Endpoint URL</label>
+      <input type="url" id="pushEndpoint" style="width: 100%; padding: 8px; margin-top: 4px;"
+             placeholder="http://localhost:8000/api/contacts">
+      <div class="info-text">
+        Change this only if you run etsy-lettertrack on a different port or host.
+        Saving a new host asks Chrome for permission to reach it — the extension
+        cannot post to a host you have not approved.
+      </div>
+    </div>
+
+    <div class="checkbox-label" style="margin-top: 12px;">
+      <input type="checkbox" id="downloadCsv" checked>
+      <label for="downloadCsv">Also download the CSV</label>
+    </div>
+    <div class="info-text">
+      Leave on to keep a local copy as well. A CSV is downloaded regardless if
+      the push fails, so a collection run is never lost.
+    </div>
+  </div>
+
+  <div class="option-group">
+    <h3>Data Handling</h3>
+    <div class="checkbox-label">
+      <input type="checkbox" id="clearDataAfterExport">
+      <label for="clearDataAfterExport">Clear collected data after export</label>
+    </div>
+    <div class="info-text">When enabled, collected orders will be cleared after successful export.</div>
+  </div>
+
+  <button id="saveButton">Save Options</button>
+  <button id="resetButton" style="background-color: #D14836; margin-left: 10px;">Reset to Defaults</button>
+
+  <div id="status"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>

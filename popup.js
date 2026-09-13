@@ -3,10 +3,15 @@ document.addEventListener('DOMContentLoaded', function() {
   const stopButton = document.getElementById('stopButton');
   const continueButton = document.getElementById('continueButton');
   const finishButton = document.getElementById('finishButton');
+  const optionsButton = document.getElementById('optionsButton');
   const navigationButtons = document.getElementById('navigationButtons');
   const loadingSpinner = document.getElementById('loadingSpinner');
   const loadingText = document.getElementById('loadingText');
   const statusDiv = document.getElementById('status');
+
+  optionsButton.addEventListener('click', function() {
+    chrome.runtime.openOptionsPage();
+  });
   
   startButton.addEventListener('click', function() {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
@@ -85,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
       hideLoading();
       stopButton.style.display = 'none';
       navigationButtons.style.display = 'block';
-      updateStatus(`Collected ${request.totalEmails} emails from ${request.currentPage} page(s).`);
+      updateStatus(`Collected ${request.totalOrders} order(s) from ${request.currentPage} page(s).`);
       pendingResponse = sendResponse;
       return true; // Indicates that the response is sent asynchronously
     } else if (request.action === "showLoading") {

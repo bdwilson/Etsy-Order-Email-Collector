@@ -1,15 +1,23 @@
 {
   "manifest_version": 3,
   "name": "Etsy Order Email Collector",
-  "version": "1.0",
-  "description": "Collect email addresses from Etsy sold orders",
+  "version": "2.2",
+  "minimum_chrome_version": "111",
+  "description": "Collect order IDs and email addresses from Etsy sold orders with optional LetterTrack integration",
   "permissions": [
     "activeTab",
     "scripting",
-    "downloads"
+    "downloads",
+    "storage"
   ],
   "host_permissions": [
-    "https://www.etsy.com/your/orders/sold*"
+    "https://www.etsy.com/your/orders/sold*",
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -24,10 +32,17 @@
     "48": "icon48.png",
     "128": "icon128.png"
   },
+  "options_page": "options.html",
   "content_scripts": [
     {
       "matches": ["https://www.etsy.com/your/orders/sold*"],
-      "js": ["content.js"]
+      "js": ["etsyOrderParser.js", "pageHook.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.etsy.com/your/orders/sold*"],
+      "js": ["etsyOrderParser.js", "content.js"]
     }
   ],
   "background": {
