@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Etsy Order Email Collector",
-  "version": "1.0",
-  "description": "Collect email addresses from Etsy sold orders",
+  "version": "2.0",
+  "description": "Collect order IDs and email addresses from Etsy sold orders with optional LetterTrack integration",
   "permissions": [
     "activeTab",
     "scripting",
-    "downloads"
+    "downloads",
+    "storage"
   ],
   "host_permissions": [
     "https://www.etsy.com/your/orders/sold*"
@@ -24,6 +25,7 @@
     "48": "icon48.png",
     "128": "icon128.png"
   },
+  "options_page": "options.html",
   "content_scripts": [
     {
       "matches": ["https://www.etsy.com/your/orders/sold*"],

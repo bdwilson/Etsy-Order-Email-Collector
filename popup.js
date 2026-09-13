@@ -3,10 +3,15 @@ document.addEventListener('DOMContentLoaded', function() {
   const stopButton = document.getElementById('stopButton');
   const continueButton = document.getElementById('continueButton');
   const finishButton = document.getElementById('finishButton');
+  const optionsButton = document.getElementById('optionsButton');
   const navigationButtons = document.getElementById('navigationButtons');
   const loadingSpinner = document.getElementById('loadingSpinner');
   const loadingText = document.getElementById('loadingText');
   const statusDiv = document.getElementById('status');
+
+  optionsButton.addEventListener('click', function() {
+    chrome.runtime.openOptionsPage();
+  });
   
   startButton.addEventListener('click', function() {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
