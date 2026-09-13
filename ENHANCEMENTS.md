@@ -23,10 +23,15 @@ ordersCollected = [
 ]
 ```
 
-**Selector Strategy**: The collector attempts to find Order IDs using flexible selectors:
-- Class-based: `.receipt-id`, `.order-id`
-- Href-based: Links containing `/receipt/` paths
-- Fallback: Empty string if no ID found (to avoid breaking collection)
+**Extraction Strategy** (`etsyOrderParser.js`): Order IDs and emails are not reliably present as text in the rendered DOM, so they are read from the `Etsy.Context` JSON that Etsy embeds in an inline `<script>` tag:
+
+- `orders_search.buyers[]` provides `buyer_id` → `email`
+- `orders_search.orders[]` provides `order_id` → `buyer_id`
+- The two are joined on `buyer_id` to pair each order with its customer
+
+Only the `orders_search` sub-object is parsed, not the whole ~200KB context blob, so an unrelated malformed field elsewhere cannot wipe out the entire page's results.
+
+Note that a content script cannot read `window.Etsy` directly — content scripts run in an isolated world — which is why the script tag's text is parsed instead.
 
 #### CSV Export (`background.js`)
 - Properly formatted CSV with headers: `Order ID,Email`

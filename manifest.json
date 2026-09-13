@@ -29,7 +29,7 @@
   "content_scripts": [
     {
       "matches": ["https://www.etsy.com/your/orders/sold*"],
-      "js": ["content.js"]
+      "js": ["etsyOrderParser.js", "content.js"]
     }
   ],
   "background": {

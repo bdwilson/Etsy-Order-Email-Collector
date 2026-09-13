@@ -13,7 +13,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       csvContent += `${escapedId},${escapedEmail}\n`;
     });
 
-    const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
+    const encodedUri = "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
     const today = new Date().toISOString().slice(0, 10);
     const filename = `etsy-order-email-collect-${today}.csv`;
 
