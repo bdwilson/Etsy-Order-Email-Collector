@@ -1,10 +1,15 @@
-// Extracts {orderId, email} pairs from the Etsy.Context blob embedded in the
-// sold-orders page. Content scripts run in an isolated world and cannot read
-// window.Etsy, so the JSON is parsed out of the inline <script> text instead.
+// Extracts {orderId, email} pairs from the sold-orders page, which exposes them
+// through two separate channels:
 //
-// Only the orders_search sub-object is parsed rather than the whole context
-// blob: the surrounding config is ~200KB of unrelated fields, and a single
-// malformed one there would otherwise cost us every order on the page.
+// 1. The first render embeds them in an inline Etsy.Context <script>. Content
+//    scripts run in an isolated world and cannot read window.Etsy, so that
+//    script's text is parsed instead. Only the orders_search sub-object is
+//    parsed, not the whole ~200KB context blob, so one malformed unrelated
+//    field cannot cost us every order on the page.
+//
+// 2. Paging and the New/Completed tabs are client-side: they fetch fresh data
+//    and never update that inline script. Those responses are captured by
+//    pageHook.js and parsed here too.
 
 function sliceBalancedObject(text, start) {
   let depth = 0;
@@ -57,22 +62,58 @@ function parseOrdersSearch(scriptText) {
   }
 }
 
-function ordersFromSearch(search) {
-  if (!search) return [];
-
+// Walks an arbitrary parsed JSON value collecting every buyer (buyer_id +
+// email) and every order (order_id + buyer_id), then joins them. Deliberately
+// shape-agnostic: the server-rendered blob nests these under
+// initial_data.orders.orders_search, but the SPA's XHR responses use a
+// different envelope, and both flow through here.
+function ordersFromAnyJson(root) {
   const emailByBuyerId = {};
-  (search.buyers || []).forEach(buyer => {
-    if (buyer && buyer.buyer_id != null && buyer.email) {
-      emailByBuyerId[String(buyer.buyer_id)] = buyer.email;
-    }
-  });
+  const orders = [];
+  const queue = [root];
+  const visited = new Set();
 
-  return (search.orders || [])
-    .filter(order => order && order.order_id != null)
+  // Breadth-first with an index cursor rather than shift()/pop(): keeps rows in
+  // the order Etsy lists them, and avoids O(n^2) shifting on large pages.
+  for (let cursor = 0; cursor < queue.length; cursor++) {
+    const node = queue[cursor];
+    if (!node || typeof node !== 'object') continue;
+    if (visited.has(node)) continue;
+    visited.add(node);
+
+    if (Array.isArray(node)) {
+      for (let i = 0; i < node.length; i++) queue.push(node[i]);
+      continue;
+    }
+
+    if (node.buyer_id != null && typeof node.email === 'string' && node.email) {
+      emailByBuyerId[String(node.buyer_id)] = node.email;
+    }
+
+    if (node.order_id != null && node.buyer_id != null) {
+      orders.push({ orderId: String(node.order_id), buyerId: String(node.buyer_id) });
+    }
+
+    for (const key in node) {
+      if (Object.prototype.hasOwnProperty.call(node, key)) queue.push(node[key]);
+    }
+  }
+
+  const seen = new Set();
+  return orders
+    .filter(order => {
+      if (seen.has(order.orderId)) return false;
+      seen.add(order.orderId);
+      return true;
+    })
     .map(order => ({
-      orderId: String(order.order_id),
-      email: emailByBuyerId[String(order.buyer_id)] || ''
+      orderId: order.orderId,
+      email: emailByBuyerId[order.buyerId] || ''
     }));
+}
+
+function ordersFromSearch(search) {
+  return search ? ordersFromAnyJson(search) : [];
 }
 
 function extractOrdersFromDocument(doc) {
@@ -89,6 +130,26 @@ function extractOrdersFromDocument(doc) {
   return [];
 }
 
+// Entry point for SPA network responses, which arrive as raw JSON text.
+function extractOrdersFromJsonText(text) {
+  if (!text || text.indexOf('order_id') === -1) return [];
+
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (e) {
+    return [];
+  }
+
+  return ordersFromAnyJson(parsed);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { parseOrdersSearch, ordersFromSearch, extractOrdersFromDocument };
+  module.exports = {
+    parseOrdersSearch,
+    ordersFromSearch,
+    ordersFromAnyJson,
+    extractOrdersFromDocument,
+    extractOrdersFromJsonText
+  };
 }

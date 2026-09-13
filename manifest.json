@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Etsy Order Email Collector",
-  "version": "2.0",
+  "version": "2.1",
+  "minimum_chrome_version": "111",
   "description": "Collect order IDs and email addresses from Etsy sold orders with optional LetterTrack integration",
   "permissions": [
     "activeTab",
@@ -27,6 +28,12 @@
   },
   "options_page": "options.html",
   "content_scripts": [
+    {
+      "matches": ["https://www.etsy.com/your/orders/sold*"],
+      "js": ["etsyOrderParser.js", "pageHook.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
     {
       "matches": ["https://www.etsy.com/your/orders/sold*"],
       "js": ["etsyOrderParser.js", "content.js"]
