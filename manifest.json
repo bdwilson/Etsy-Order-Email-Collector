@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Etsy Order Email Collector",
-  "version": "2.1",
+  "version": "2.2",
   "minimum_chrome_version": "111",
   "description": "Collect order IDs and email addresses from Etsy sold orders with optional LetterTrack integration",
   "permissions": [
@@ -11,7 +11,13 @@
     "storage"
   ],
   "host_permissions": [
-    "https://www.etsy.com/your/orders/sold*"
+    "https://www.etsy.com/your/orders/sold*",
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
   ],
   "action": {
     "default_popup": "popup.html",

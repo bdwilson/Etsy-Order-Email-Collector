@@ -40,6 +40,7 @@ Etsy Order Email Collector is a Chrome extension designed to help Etsy sellers e
 - **Multi-Page Support** - Easily navigate through multiple pages of orders with a simple UI
 - **CSV Export** - Download all collected data as a properly formatted CSV file with `Order ID` and `Email` columns
 - **LetterTrack Compatible** - CSV output format works seamlessly with [etsy-lettertrack](https://github.com/bdwilson/etsy-lettertrack) for order tracking integration
+- **Direct Push** - Optionally send collected orders straight into a running etsy-lettertrack instance, with no CSV to import by hand
 - **Customizable Settings** - Configure export options via the settings panel
 
 ## Privacy & Ethical Use
@@ -57,16 +58,67 @@ Etsy Order Email Collector is a Chrome extension designed to help Etsy sellers e
 
 The Etsy Order Email Collector is designed to work with [etsy-lettertrack](https://github.com/bdwilson/etsy-lettertrack), a tool that bridges Etsy orders to LetterTrack Pro supplemental tracking.
 
-### Workflow
+### Option A — push directly (no CSV)
+
+1. Start etsy-lettertrack (`docker compose up`) so it's listening on `http://localhost:8000`.
+2. Open this extension's **Options** and tick **"Send collected orders to
+   etsy-lettertrack when collection finishes"**. Leave the endpoint at its
+   default unless you run it on another port.
+3. Collect orders as usual. When you finish, each Order ID + Email pair is
+   posted to etsy-lettertrack and linked to the matching order immediately.
+
+Because this extension reads Etsy's own order data, the order number is known
+exactly — so addresses are linked outright rather than guessed. (etsy-lettertrack
+queues addresses that arrive *without* an order number for manual review, since a
+wrong match there would email one buyer another buyer's order details. Pushing
+from this extension avoids that path entirely.)
+
+Your own seller address is dropped on the receiving end rather than stored, and
+the endpoint only accepts requests from the local machine.
+
+**If the push fails** — etsy-lettertrack not running, wrong port — a CSV is
+downloaded anyway, so a collection run is never lost. The popup says what
+happened.
+
+**Using a different port or host?** Change the endpoint in Options and approve
+the permission prompt Chrome shows. Chrome blocks requests to hosts the
+extension hasn't been granted, so skipping that prompt makes the push fail at
+send time.
+
+### Option B — export the CSV
 
 1. Use this extension to collect Order IDs and customer emails from your Etsy sold orders
 2. Export the CSV file containing Order ID and Email columns
-3. The Order ID column maps to Etsy receipt IDs, which can be used with etsy-lettertrack for:
+3. Paste or import it into etsy-lettertrack's `/contacts` screen
+
+Either way, the Order ID column maps to Etsy receipt IDs, which etsy-lettertrack
+uses for:
    - Generating LetterTrack-format CSVs for batch import
    - Compositing LetterTrack IMb barcodes onto Etsy shipping labels
    - Tracking orders through USPS Informed Visibility
+   - Emailing buyers their Etsy and LetterTrack tracking details
 
 This creates a complete workflow for Etsy sellers who want supplemental USPS tracking alongside their existing Etsy postage labels.
+
+### Push API
+
+The endpoint is `POST /api/contacts` and takes:
+
+```json
+{"contacts": [{"email": "buyer@example.com", "order_id": "4147089582"}]}
+```
+
+It replies with what it did, which is what the popup reports:
+
+```json
+{
+  "saved": [{"email": "buyer@example.com", "order_id": 4147089582}],
+  "queued": [],
+  "excluded": ["you@yourshop.com"],
+  "pending_total": 0,
+  "review_url": "http://localhost:8000/contacts/pending"
+}
+```
 
 ## Contributing
 

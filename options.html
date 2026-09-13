@@ -116,6 +116,41 @@
   </div>
 
   <div class="option-group">
+    <h3>Push to etsy-lettertrack</h3>
+    <div class="checkbox-label">
+      <input type="checkbox" id="pushEnabled">
+      <label for="pushEnabled">Send collected orders to etsy-lettertrack when collection finishes</label>
+    </div>
+    <div class="info-text">
+      Posts each <strong>Order ID + Email</strong> pair straight into a running
+      <a href="https://github.com/bdwilson/etsy-lettertrack" target="_blank">etsy-lettertrack</a>
+      instance, so there is no CSV to import by hand. Because this extension reads
+      Etsy's own data, the order number is exact and addresses are linked
+      immediately rather than guessed.
+    </div>
+
+    <div style="margin-top: 12px;">
+      <label for="pushEndpoint">Endpoint URL</label>
+      <input type="url" id="pushEndpoint" style="width: 100%; padding: 8px; margin-top: 4px;"
+             placeholder="http://localhost:8000/api/contacts">
+      <div class="info-text">
+        Change this only if you run etsy-lettertrack on a different port or host.
+        Saving a new host asks Chrome for permission to reach it — the extension
+        cannot post to a host you have not approved.
+      </div>
+    </div>
+
+    <div class="checkbox-label" style="margin-top: 12px;">
+      <input type="checkbox" id="downloadCsv" checked>
+      <label for="downloadCsv">Also download the CSV</label>
+    </div>
+    <div class="info-text">
+      Leave on to keep a local copy as well. A CSV is downloaded regardless if
+      the push fails, so a collection run is never lost.
+    </div>
+  </div>
+
+  <div class="option-group">
     <h3>Data Handling</h3>
     <div class="checkbox-label">
       <input type="checkbox" id="clearDataAfterExport">
