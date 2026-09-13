@@ -71,6 +71,50 @@ function waitForOrders(timeoutMs) {
   });
 }
 
+const NEXT_PAGE_SELECTORS = [
+  '.btn-group button[title="Next page"]',
+  'button[title="Next page"]',
+  'a[title="Next page"]',
+  'button[aria-label="Next page"]',
+  'a[aria-label="Next page"]'
+];
+
+function isDisabled(element) {
+  return element.disabled === true ||
+    element.getAttribute('aria-disabled') === 'true' ||
+    element.classList.contains('disabled') ||
+    element.classList.contains('is-disabled');
+}
+
+function findNextPageButton() {
+  for (let i = 0; i < NEXT_PAGE_SELECTORS.length; i++) {
+    const candidates = document.querySelectorAll(NEXT_PAGE_SELECTORS[i]);
+    for (let j = 0; j < candidates.length; j++) {
+      if (!isDisabled(candidates[j])) return candidates[j];
+    }
+  }
+  return null;
+}
+
+// The SPA repaints its pagination controls after the response lands, so the
+// button can be briefly absent or disabled at the moment the data arrives.
+// Checking once there made collection stop early and report itself finished.
+function waitForNextPageButton(timeoutMs) {
+  return new Promise(resolve => {
+    const button = findNextPageButton();
+    if (button) return resolve(button);
+
+    const deadline = Date.now() + timeoutMs;
+    const timer = setInterval(() => {
+      const found = findNextPageButton();
+      if (found || Date.now() > deadline) {
+        clearInterval(timer);
+        resolve(found);
+      }
+    }, 300);
+  });
+}
+
 function collectOrders() {
   if (!isCollecting) return;
 
@@ -89,10 +133,14 @@ function collectOrders() {
       updateStatus(`Collected ${ordersCollected.length} order(s) from ${currentPage} page(s)`);
     }
 
-    const nextPageButton = document.querySelector('.btn-group button[title="Next page"]');
-    if (nextPageButton && !nextPageButton.disabled) {
+    return waitForNextPageButton(8000);
+  }).then(nextPageButton => {
+    if (!isCollecting) return;
+
+    if (nextPageButton) {
       promptNextPage();
     } else {
+      console.log('Etsy collector: no enabled "Next page" control found, finishing.');
       isCollecting = false;
       sendOrdersToBackground();
     }
@@ -111,12 +159,18 @@ function promptNextPage() {
       isCollecting = false;
       sendOrdersToBackground();
     } else if (response && response.proceed) {
-      const nextPageButton = document.querySelector('.btn-group button[title="Next page"]');
+      // Re-query rather than reusing the earlier reference: the SPA replaces
+      // these nodes on every render, so the old one may be detached by now.
+      const nextPageButton = findNextPageButton();
       if (nextPageButton) {
         nextPageButton.click();
         currentPage++;
         showLoading("Loading next page...");
         collectOrders();
+      } else {
+        console.log('Etsy collector: "Next page" control vanished before the click, finishing.');
+        isCollecting = false;
+        sendOrdersToBackground();
       }
     } else {
       isCollecting = false;
