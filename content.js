@@ -23,25 +23,36 @@ function collectOrders() {
   showLoading("Processing current page...");
 
   setTimeout(() => {
-    // Find all order rows and extract order ID + email from each
-    const orderRows = document.querySelectorAll('[class*="order-row"], [class*="receipt"]');
+    // Extract from Etsy.Context embedded JavaScript data
+    if (window.Etsy && window.Etsy.Context && window.Etsy.Context.data) {
+      const contextData = window.Etsy.Context.data;
 
-    orderRows.forEach(row => {
-      // Try to find order ID in the row (typically in first few elements)
-      const orderIdElement = row.querySelector('[class*="receipt-id"], [class*="order-id"], .order-code, a[href*="/receipt/"]');
-      const orderIdText = orderIdElement?.textContent?.trim() || orderIdElement?.getAttribute('href')?.match(/\d+/)?.[0];
+      if (contextData.initial_data && contextData.initial_data.orders) {
+        const ordersData = contextData.initial_data.orders;
 
-      // Find email in the dropdown menu (existing approach)
-      const emailElement = row.querySelector('.dropdown-body ul li:last-child a');
-      const email = emailElement?.textContent?.trim();
+        // Build a map of buyer_id -> email from the buyers array
+        const buyerEmailMap = {};
+        if (ordersData.orders_search && ordersData.orders_search.buyers) {
+          ordersData.orders_search.buyers.forEach(buyer => {
+            buyerEmailMap[buyer.buyer_id] = buyer.email;
+          });
+        }
 
-      if (email && email.includes('@')) {
-        ordersCollected.push({
-          orderId: orderIdText || '',
-          email: email
-        });
+        // Process each order and match with buyer email
+        if (ordersData.orders_search && ordersData.orders_search.orders) {
+          ordersData.orders_search.orders.forEach(order => {
+            const email = buyerEmailMap[order.buyer_id];
+
+            if (email && email.includes('@')) {
+              ordersCollected.push({
+                orderId: order.order_id ? order.order_id.toString() : '',
+                email: email
+              });
+            }
+          });
+        }
       }
-    });
+    }
 
     hideLoading();
     updateStatus(`Collected ${ordersCollected.length} order(s) from ${currentPage} page(s)`);
