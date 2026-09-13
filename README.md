@@ -1,6 +1,6 @@
 # Etsy Order Email Collector
 
-Etsy Order Email Collector is a Chrome extension designed to help Etsy sellers efficiently collect customer email addresses from their Sold Orders page. This tool streamlines the process of gathering customer contact information for marketing purposes, customer service follow-ups, or other business needs.
+Etsy Order Email Collector is a Chrome extension designed to help Etsy sellers efficiently collect customer email addresses and order IDs from their Sold Orders page. This tool streamlines the process of gathering customer contact information and mapping it to specific orders for marketing purposes, customer service follow-ups, order tracking, or integration with other business tools like LetterTrack.
 
 ## Download & Install
 
@@ -22,15 +22,17 @@ Etsy Order Email Collector is a Chrome extension designed to help Etsy sellers e
 
 2. **Start the collection**:
    - Click on the Etsy Order Email Collector extension icon in your Chrome toolbar.
-   - In the popup, click "Start Collecting Emails".
+   - In the popup, click "Start Collecting Orders".
 
 3. **Collection process**:
-   - The extension will automatically collect email addresses from the current page.
+   - The extension will automatically collect Order IDs and email addresses from the current page.
    - After each page, you'll be prompted to continue to the next page or finish.
    - Click "Continue to Next Page" to proceed or "Finish and Download" when done.
 
 4. **Download results**:
-   - Once you've finished or there are no more pages, a CSV file containing all collected email addresses will be downloaded automatically. You can then upload the file to your email newsletter service, etc.
+   - Once you've finished or there are no more pages, a CSV file containing all collected Order IDs and email addresses will be downloaded automatically.
+   - The CSV has two columns: "Order ID" and "Email"
+   - You can then upload the file to your email newsletter service, use it with etsy-lettertrack, or process it with your own business tools.
 
 ## Privacy & Ethical Use
 

@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
       hideLoading();
       stopButton.style.display = 'none';
       navigationButtons.style.display = 'block';
-      updateStatus(`Collected ${request.totalEmails} emails from ${request.currentPage} page(s).`);
+      updateStatus(`Collected ${request.totalOrders} order(s) from ${request.currentPage} page(s).`);
       pendingResponse = sendResponse;
       return true; // Indicates that the response is sent asynchronously
     } else if (request.action === "showLoading") {

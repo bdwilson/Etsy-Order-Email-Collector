@@ -1,45 +1,57 @@
 let isCollecting = false;
-let emailsCollected = [];
+let ordersCollected = [];
 let currentPage = 1;
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.action === "start") {
     isCollecting = true;
-    emailsCollected = [];
+    ordersCollected = [];
     currentPage = 1;
-    collectEmails();
+    collectOrders();
     sendResponse({status: "started"});
   } else if (request.action === "stop") {
     isCollecting = false;
-    sendEmailsToBackground();
+    sendOrdersToBackground();
     sendResponse({status: "stopped"});
   }
   return true;
 });
 
-function collectEmails() {
+function collectOrders() {
   if (!isCollecting) return;
 
   showLoading("Processing current page...");
 
   setTimeout(() => {
-    const emailElements = document.querySelectorAll('.dropdown-body ul li:last-child a');
-    emailElements.forEach(element => {
-      const email = element.textContent.trim();
+    // Find all order rows and extract order ID + email from each
+    const orderRows = document.querySelectorAll('[class*="order-row"], [class*="receipt"]');
+
+    orderRows.forEach(row => {
+      // Try to find order ID in the row (typically in first few elements)
+      const orderIdElement = row.querySelector('[class*="receipt-id"], [class*="order-id"], .order-code, a[href*="/receipt/"]');
+      const orderIdText = orderIdElement?.textContent?.trim() || orderIdElement?.getAttribute('href')?.match(/\d+/)?.[0];
+
+      // Find email in the dropdown menu (existing approach)
+      const emailElement = row.querySelector('.dropdown-body ul li:last-child a');
+      const email = emailElement?.textContent?.trim();
+
       if (email && email.includes('@')) {
-        emailsCollected.push(email);
+        ordersCollected.push({
+          orderId: orderIdText || '',
+          email: email
+        });
       }
     });
 
     hideLoading();
-    updateStatus(`Collected ${emailsCollected.length} emails from ${currentPage} page(s)`);
+    updateStatus(`Collected ${ordersCollected.length} order(s) from ${currentPage} page(s)`);
 
     const nextPageButton = document.querySelector('.btn-group button[title="Next page"]');
     if (nextPageButton && !nextPageButton.disabled) {
       promptNextPage();
     } else {
       isCollecting = false;
-      sendEmailsToBackground();
+      sendOrdersToBackground();
     }
   }, 5000);
 }
@@ -47,33 +59,33 @@ function collectEmails() {
 function promptNextPage() {
   chrome.runtime.sendMessage({
     action: "promptNextPage",
-    message: `Collected ${emailsCollected.length} emails from ${currentPage} page(s).`,
+    message: `Collected ${ordersCollected.length} order(s) from ${currentPage} page(s).`,
     currentPage: currentPage,
-    totalEmails: emailsCollected.length
+    totalOrders: ordersCollected.length
   }, function(response) {
     if (chrome.runtime.lastError) {
       console.error('Error in promptNextPage:', chrome.runtime.lastError);
       isCollecting = false;
-      sendEmailsToBackground();
+      sendOrdersToBackground();
     } else if (response && response.proceed) {
       const nextPageButton = document.querySelector('.btn-group button[title="Next page"]');
       if (nextPageButton) {
         nextPageButton.click();
         currentPage++;
         showLoading("Loading next page...");
-        setTimeout(collectEmails, 5000);
+        setTimeout(collectOrders, 5000);
       }
     } else {
       isCollecting = false;
-      sendEmailsToBackground();
+      sendOrdersToBackground();
     }
   });
 }
 
-function sendEmailsToBackground() {
+function sendOrdersToBackground() {
   chrome.runtime.sendMessage({
     action: "downloadCSV",
-    emails: emailsCollected
+    orders: ordersCollected
   });
 }
 
