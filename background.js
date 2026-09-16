@@ -68,12 +68,24 @@ async function pushToApi(orders, endpoint) {
     throw new Error(`HTTP ${response.status} from ${endpoint}`);
   }
 
-  const result = await response.json();
+  // A 2xx is the contract. The reply body is only used to report detail, so a
+  // receiver that answers with an empty body, plain text, or its own unrelated
+  // JSON still counts as a successful push — this endpoint shape is meant to
+  // be implementable by anyone, not just etsy-lettertrack.
+  let result = {};
+  try {
+    result = await response.json();
+  } catch (e) {
+    result = {};
+  }
+  if (!result || typeof result !== 'object') result = {};
+
+  const count = value => (Array.isArray(value) ? value.length : null);
   return {
     pushed: contacts.length,
-    saved: (result.saved || []).length,
-    queued: (result.queued || []).length,
-    excluded: (result.excluded || []).length
+    saved: count(result.saved),
+    queued: count(result.queued),
+    excluded: count(result.excluded)
   };
 }
 
@@ -83,11 +95,14 @@ async function handleCollectedOrders(orders) {
   let pushFailed = false;
 
   if (settings.pushEnabled) {
-    setStatus("Pushing to etsy-lettertrack…");
+    setStatus("Pushing collected orders…");
     try {
       const result = await pushToApi(orders, settings.pushEndpoint || DEFAULT_PUSH_ENDPOINT);
       if (result.skipped) {
         messages.push("Nothing to push (no order/email pairs collected)");
+      } else if (result.saved === null) {
+        // Receiver accepted it but didn't report a breakdown.
+        messages.push(`Pushed ${result.pushed} order(s)`);
       } else {
         const detail = [`${result.saved} matched to an order`];
         if (result.queued) detail.push(`${result.queued} need review`);
@@ -96,15 +111,22 @@ async function handleCollectedOrders(orders) {
       }
     } catch (error) {
       pushFailed = true;
-      messages.push(`Push failed (${error.message}). Is etsy-lettertrack running?`);
+      messages.push(`Push failed (${error.message}). Is the receiving app running?`);
     }
   }
 
-  // The CSV is still written when a push fails: losing a whole collection run
-  // because a local service was down would be the worse outcome, and the CSV
-  // can always be imported by hand afterwards.
-  const wantCsv = settings.downloadCsv || !settings.pushEnabled || pushFailed;
-  if (wantCsv) {
+  // Every run is kept so the popup can offer the CSV on demand — nothing is
+  // lost when the automatic download is switched off, or when a push failed
+  // and the popup was closed at the time.
+  await chrome.storage.local.set({
+    lastCollection: {
+      orders: orders,
+      collectedAt: new Date().toISOString(),
+      pushFailed: pushFailed
+    }
+  });
+
+  if (settings.downloadCsv) {
     try {
       await downloadCsv(orders);
       messages.push("CSV downloaded");
@@ -114,7 +136,24 @@ async function handleCollectedOrders(orders) {
     }
   }
 
-  setStatus(messages.join(" · ") || "Nothing collected.");
+  setStatus(messages.join(" · ") || `Collected ${orders.length} order(s).`);
+  // Tells the popup a run just ended, so it can show the download button
+  // without waiting for the next time it is opened.
+  chrome.runtime.sendMessage({ action: "collectionComplete", count: orders.length })
+    .catch(() => {});
+}
+
+async function downloadLastCollection() {
+  const { lastCollection } = await chrome.storage.local.get("lastCollection");
+  if (!lastCollection || !lastCollection.orders || !lastCollection.orders.length) {
+    setStatus("Nothing collected yet.");
+    return;
+  }
+  try {
+    await downloadCsv(lastCollection.orders);
+  } catch (error) {
+    setStatus(`CSV download failed: ${error.message}`);
+  }
 }
 
 chrome.runtime.onMessage.addListener(function(request) {
@@ -122,5 +161,7 @@ chrome.runtime.onMessage.addListener(function(request) {
     // Deliberately not awaited and no `return true`: nothing sends a response
     // on this message, and the worker stays alive for the fetch and download.
     handleCollectedOrders(request.orders || []);
+  } else if (request.action === "downloadLastCsv") {
+    downloadLastCollection();
   }
 });
