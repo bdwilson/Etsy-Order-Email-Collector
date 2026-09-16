@@ -1,4 +1,4 @@
-const DEFAULT_PUSH_ENDPOINT = 'http://localhost:8000/api/contacts';
+const DEFAULT_PUSH_ENDPOINT = 'http://localhost:8145/api/contacts';
 
 document.addEventListener('DOMContentLoaded', function() {
   const includeOrderIdCheckbox = document.getElementById('includeOrderId');
@@ -27,7 +27,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Chrome blocks a fetch to any host that isn't covered by host_permissions,
   // and it fails at request time with nothing in the options UI to explain it.
-  // localhost:8000 ships in the manifest; anything else has to be granted, and
+  // localhost:8145 and :8000 ship in the manifest; anything else has to be
+  // granted, and
   // chrome.permissions.request needs a user gesture — this click is one.
   function ensureHostPermission(endpoint) {
     let origin;

@@ -72,7 +72,7 @@ The Etsy Order Email Collector is designed to work with [etsy-lettertrack](https
 
 ### Option A — push directly (no CSV)
 
-1. Start etsy-lettertrack (`docker compose up`) so it's listening on `http://localhost:8000`.
+1. Start etsy-lettertrack (`docker compose up`) — it publishes port **8145**.
 2. Open this extension's **Options** and tick **"Send collected orders to
    etsy-lettertrack when collection finishes"**. Leave the endpoint at its
    default unless you run it on another port.

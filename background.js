@@ -1,4 +1,4 @@
-const DEFAULT_PUSH_ENDPOINT = "http://localhost:8000/api/contacts";
+const DEFAULT_PUSH_ENDPOINT = "http://localhost:8145/api/contacts";
 
 const DEFAULT_SETTINGS = {
   pushEnabled: false,
